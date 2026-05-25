@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telling the Time</title>
+  <style>
+    :root{
+      --green-1:#7ed957;
+      --green-2:#57b93c;
+      --green-3:#2f8d2d;
+      --green-4:#236d20;
+      --cream:#f7f0d8;
+      --brown:#6f4a2d;
+      --brown-dark:#4b2d18;
+      --panel:rgba(255,248,221,.94);
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family:"Trebuchet MS","Verdana",sans-serif;
+    }
+
+    body{
+      background:
+        linear-gradient(rgba(0,0,0,.12), rgba(0,0,0,.12)),
+        url("https://i.postimg.cc/DmVWTxsT/bg.png") center/cover no-repeat;
+    }
+
+    .app{
+      position:relative;
+      width:100%;
+      height:100%;
+    }
+
+    .screen{
+      position:absolute;
+      inset:0;
+      display:none;
+      animation:fadeIn .35s ease;
+    }
+
+    .screen.active{
+      display:block;
+    }
+
+    @keyframes fadeIn{
+      from{opacity:0; transform:scale(.985)}
+      to{opacity:1; transform:scale(1)}
+    }
+
+    .center-screen{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:28px;
+      padding:24px;
+    }
+
+    .title-board{
+      background:linear-gradient(180deg,#a46d40 0%, #82502c 100%);
+      border:5px solid #4c2d18;
+      border-radius:24px;
+      padding:20px 42px;
+      color:#fff9dc;
+      box-shadow:0 8px 0 #4c2d18, 0 16px 30px rgba(0,0,0,.22);
+      transform:rotate(-1deg);
+      text-align:center;
+    }
+
+    .title-board h1{
+      margin:0;
+      font-size:clamp(34px,5vw,74px);
+      text-transform:uppercase;
+      line-height:1;
+      letter-spacing:2px;
+      text-shadow:0 3px 0 #4c2d18;
+    }
+
+    .pvz-btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      user-select:none;
+      text-transform:uppercase;
+      font-weight:900;
+      letter-spacing:1px;
+      color:#fffbe7;
+      background:linear-gradient(180deg, var(--green-1) 0%, var(--green-2) 55%, var(--green-3) 100%);
+      border:4px solid var(--green-4);
+      border-radius:20px;
+      padding:16px 28px;
+      font-size:22px;
+      text-shadow:0 2px 0 rgba(0,0,0,.25);
+      box-shadow:0 7px 0 #245f20, 0 14px 24px rgba(0,0,0,.18);
+      transition:transform .12s ease, filter .18s ease, box-shadow .12s ease;
+    }
+
+    .pvz-btn:hover{filter:brightness(1.04)}
+    .pvz-btn:active{
+      transform:translateY(4px);
+      box-shadow:0 3px 0 #245f20, 0 8px 15px rgba(0,0,0,.18);
+    }
+
+    .small-btn{
+      min-width:170px;
+      font-size:18px;
+      padding:14px 20px;
+    }
+
+    .cream-badge{
+      background:var(--panel);
+      border:4px solid #8a613b;
+      color:#4e301b;
+      border-radius:18px;
+      padding:12px 18px;
+      font-weight:900;
+      box-shadow:0 6px 0 rgba(111,74,45,.85), 0 12px 22px rgba(0,0,0,.15);
+      text-align:center;
+    }
+
+    .trainer-screen{
+      width:100%;
+      height:100%;
+      position:relative;
+      padding:22px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .trainer-top-right{
+      position:absolute;
+      top:20px;
+      right:22px;
+      z-index:5;
+    }
+
+    .trainer-layout{
+      width:min(1250px, 100%);
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:24px;
+      align-items:center;
+    }
+
+    .clock-zone{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .clock-card{
+      background:rgba(255,255,255,.08);
+      border-radius:30px;
+      padding:16px;
+      backdrop-filter:blur(2px);
+    }
+
+    .clock-wrap{
+      width:min(70vw, 520px);
+      height:min(70vw, 520px);
+      min-width:300px;
+      min-height:300px;
+      position:relative;
+    }
+
+    .clock-svg{
+      width:100%;
+      height:100%;
+      display:block;
+      filter:drop-shadow(0 14px 24px rgba(0,0,0,.25));
+    }
+
+    .hand{
+      transform-origin:200px 200px;
+      transition:transform .45s cubic-bezier(.2,.8,.2,1);
+      cursor:grab;
+    }
+
+    .hand.dragging{
+      cursor:grabbing;
+      transition:none;
+    }
+
+    .side-controls{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      align-items:stretch;
+    }
+
+    .quiz-screen{
+      width:100%;
+      height:100%;
+      position:relative;
+      padding:18px 24px 16px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+
+    .quiz-top{
+      width:min(1180px, 100%);
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:12px;
+      margin-top:2px;
+      margin-bottom:0;
+      z-index:4;
+    }
+
+    .quiz-panel{
+      width:min(1180px,100%);
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      gap:10px;
+      padding-top:4px;
+      position:relative;
+    }
+
+    .quiz-title{
+      background:var(--panel);
+      border:4px solid #8a613b;
+      color:#4e301b;
+      border-radius:16px;
+      padding:8px 18px;
+      font-weight:900;
+      font-size:clamp(18px,2vw,28px);
+      box-shadow:0 6px 0 rgba(111,74,45,.85), 0 12px 22px rgba(0,0,0,.15);
+      text-align:center;
+      margin:0 auto 6px;
+    }
+
+    .quiz-clock-card{
+      background:rgba(255,255,255,.08);
+      border-radius:30px;
+      padding:10px;
+      backdrop-filter:blur(2px);
+      margin-top:0;
+    }
+
+    .quiz-clock-wrap{
+      width:min(44vw, 380px);
+      height:min(44vw, 380px);
+      min-width:240px;
+      min-height:240px;
+    }
+
+    .answer-row{
+      width:min(760px, 100%);
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:0;
+    }
+
+    .answer-input{
+      width:min(720px, 100%);
+      font-size:24px;
+      font-weight:800;
+      padding:18px 20px;
+      border-radius:18px;
+      border:4px solid #8a613b;
+      outline:none;
+      background:rgba(255,255,247,.97);
+      color:#4e301b;
+      box-shadow:0 6px 0 rgba(111,74,45,.85), 0 12px 22px rgba(0,0,0,.15);
+      transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .answer-input:focus{
+      box-shadow:0 0 0 5px rgba(126,217,87,.3), 0 6px 0 rgba(111,74,45,.85), 0 12px 22px rgba(0,0,0,.15);
+    }
+
+    .answer-input.success{
+      border-color:#79ff7b;
+      background:rgba(235,255,235,.98);
+      box-shadow:
+        0 0 10px rgba(121,255,123,.95),
+        0 0 22px rgba(121,255,123,.8),
+        0 0 40px rgba(121,255,123,.55),
+        0 6px 0 rgba(46,122,45,.9),
+        0 12px 22px rgba(0,0,0,.15);
+    }
+
+    .answer-input.error{
+      border-color:#ff5f5f;
+      background:rgba(255,236,236,.98);
+      box-shadow:
+        0 0 8px rgba(255,95,95,.9),
+        0 0 18px rgba(255,95,95,.75),
+        0 0 34px rgba(255,95,95,.45),
+        0 6px 0 rgba(150,43,43,.9),
+        0 12px 22px rgba(0,0,0,.15);
+    }
+
+    .feedback{
+      min-height:24px;
+      font-size:18px;
+      font-weight:900;
+      color:#fffbe9;
+      text-shadow:0 2px 0 rgba(0,0,0,.35);
+      margin-top:0;
+    }
+
+    .progress{
+      background:rgba(111,74,45,.95);
+      color:#fff7d9;
+      border:4px solid #d5b889;
+      border-radius:16px;
+      padding:10px 16px;
+      font-weight:900;
+      min-width:86px;
+      text-align:center;
+      box-shadow:0 6px 0 #6a4324, 0 12px 18px rgba(0,0,0,.18);
+    }
+
+    .result-board{
+      display:none;
+      margin:auto;
+      background:rgba(255,248,221,.96);
+      border:5px solid #8a613b;
+      border-radius:24px;
+      padding:24px 28px;
+      box-shadow:0 8px 0 rgba(111,74,45,.9), 0 18px 28px rgba(0,0,0,.18);
+      color:#4e301b;
+      text-align:center;
+      max-width:700px;
+    }
+
+    .result-board h2{
+      margin:0 0 10px;
+      font-size:42px;
+    }
+
+    .result-board p{
+      margin:10px 0;
+      font-size:24px;
+      font-weight:800;
+    }
+
+    @media (max-width: 900px){
+      .trainer-layout{
+        grid-template-columns:1fr;
+      }
+      .side-controls{
+        flex-direction:row;
+        flex-wrap:wrap;
+        justify-content:center;
+      }
+      .clock-wrap{
+        width:min(82vw,460px);
+        height:min(82vw,460px);
+      }
+      .quiz-clock-wrap{
+        width:min(62vw, 360px);
+        height:min(62vw, 360px);
+      }
+    }
+
+    @media (max-width: 560px){
+      .pvz-btn{font-size:16px;padding:14px 18px}
+      .small-btn{min-width:140px}
+      .answer-input{font-size:20px}
+      .clock-wrap{min-width:260px; min-height:260px}
+      .quiz-clock-wrap{min-width:220px; min-height:220px}
+      .quiz-title{font-size:18px;padding:8px 14px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="screen active" id="screen-start">
+      <div class="center-screen">
+        <div class="title-board">
+          <h1>Telling the Time</h1>
+        </div>
+        <button class="pvz-btn" id="startBtn">Start</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-trainer">
+      <div class="trainer-screen">
+        <div class="trainer-top-right">
+          <button class="pvz-btn small-btn" id="toQuizBtn">Quiz</button>
+        </div>
+
+        <div class="trainer-layout">
+          <div class="clock-zone">
+            <div class="clock-card">
+              <div class="clock-wrap" id="clockArea">
+                <svg class="clock-svg" viewBox="0 0 400 400">
+                  <defs>
+                    <radialGradient id="faceGrad" cx="50%" cy="40%">
+                      <stop offset="0%" stop-color="#fffef3"/>
+                      <stop offset="70%" stop-color="#f2edd3"/>
+                      <stop offset="100%" stop-color="#ddd4ab"/>
+                    </radialGradient>
+                    <linearGradient id="rimGrad" x1="0" x2="1">
+                      <stop offset="0%" stop-color="#704526"/>
+                      <stop offset="50%" stop-color="#a96f3c"/>
+                      <stop offset="100%" stop-color="#5a371f"/>
+                    </linearGradient>
+                  </defs>
+
+                  <circle cx="200" cy="200" r="182" fill="url(#rimGrad)" stroke="#4b2d18" stroke-width="8"/>
+                  <circle cx="200" cy="200" r="160" fill="url(#faceGrad)" stroke="#8e6b3c" stroke-width="6"/>
+                  <g id="ticks"></g>
+                  <g id="numbers" font-size="28" font-weight="900" fill="#5b3a21" text-anchor="middle" dominant-baseline="middle"></g>
+
+                  <line id="hourHand" class="hand" x1="200" y1="200" x2="200" y2="112" stroke="#5a2f15" stroke-width="12" stroke-linecap="round"/>
+                  <line id="minuteHand" class="hand" x1="200" y1="200" x2="200" y2="72" stroke="#2d7d24" stroke-width="8" stroke-linecap="round"/>
+
+                  <circle cx="200" cy="200" r="15" fill="#6f4a2d" stroke="#f1e3b5" stroke-width="5"/>
+                  <circle cx="200" cy="200" r="5" fill="#f1e3b5"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="side-controls">
+            <div class="cream-badge" id="modeBadge">Random Mode</div>
+            <button class="pvz-btn small-btn" id="randomBtn">Random</button>
+            <button class="pvz-btn small-btn" id="freeModeBtn">Free Mode</button>
+            <button class="pvz-btn small-btn" id="resetBtn">Reset</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-quiz">
+      <div class="quiz-screen">
+        <div class="quiz-top">
+          <div class="progress" id="progressBox">1 / 8</div>
+          <button class="pvz-btn small-btn" id="backTrainerBtn">Trainer</button>
+        </div>
+
+        <div class="quiz-panel" id="quizPanel">
+          <div class="quiz-title">What time is it?</div>
+
+          <div class="quiz-clock-card">
+            <div class="quiz-clock-wrap">
+              <svg class="clock-svg" viewBox="0 0 400 400">
+                <defs>
+                  <radialGradient id="faceGrad2" cx="50%" cy="40%">
+                    <stop offset="0%" stop-color="#fffef3"/>
+                    <stop offset="70%" stop-color="#f2edd3"/>
+                    <stop offset="100%" stop-color="#ddd4ab"/>
+                  </radialGradient>
+                  <linearGradient id="rimGrad2" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#704526"/>
+                    <stop offset="50%" stop-color="#a96f3c"/>
+                    <stop offset="100%" stop-color="#5a371f"/>
+                  </linearGradient>
+                </defs>
+
+                <circle cx="200" cy="200" r="182" fill="url(#rimGrad2)" stroke="#4b2d18" stroke-width="8"/>
+                <circle cx="200" cy="200" r="160" fill="url(#faceGrad2)" stroke="#8e6b3c" stroke-width="6"/>
+                <g id="quizTicks"></g>
+                <g id="quizNumbers" font-size="28" font-weight="900" fill="#5b3a21" text-anchor="middle" dominant-baseline="middle"></g>
+
+                <line id="quizHourHand" x1="200" y1="200" x2="200" y2="112" stroke="#5a2f15" stroke-width="12" stroke-linecap="round"/>
+                <line id="quizMinuteHand" x1="200" y1="200" x2="200" y2="72" stroke="#2d7d24" stroke-width="8" stroke-linecap="round"/>
+
+                <circle cx="200" cy="200" r="15" fill="#6f4a2d" stroke="#f1e3b5" stroke-width="5"/>
+                <circle cx="200" cy="200" r="5" fill="#f1e3b5"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="answer-row">
+            <input
+              type="text"
+              class="answer-input"
+              id="answerInput"
+              placeholder="Type: It's eight o'clock"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="answer-row">
+            <button class="pvz-btn small-btn" id="checkBtn" type="button">Check</button>
+            <button class="pvz-btn small-btn" id="nextBtn" type="button">Next</button>
+          </div>
+
+          <div class="feedback" id="feedback"></div>
+        </div>
+
+        <div class="result-board" id="resultBoard">
+          <h2 id="resultTitle">Great Job!</h2>
+          <p id="scoreText">Score: 0 / 8</p>
+          <p id="resultSub">Press restart to play again.</p>
+          <div style="margin-top:18px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <button class="pvz-btn small-btn" id="restartQuizBtn">Restart Quiz</button>
+            <button class="pvz-btn small-btn" id="goTrainerBtn">Trainer</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function drawClockFace(ticksEl, numbersEl) {
+      for (let i = 0; i < 60; i++) {
+        const angle = (i * 6 - 90) * Math.PI / 180;
+        const isHour = i % 5 === 0;
+        const r1 = isHour ? 132 : 142;
+        const r2 = 152;
+        const x1 = 200 + Math.cos(angle) * r1;
+        const y1 = 200 + Math.sin(angle) * r1;
+        const x2 = 200 + Math.cos(angle) * r2;
+        const y2 = 200 + Math.sin(angle) * r2;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        line.setAttribute("stroke", isHour ? "#6b4729" : "#ae9770");
+        line.setAttribute("stroke-width", isHour ? "4" : "2");
+        line.setAttribute("stroke-linecap", "round");
+        ticksEl.appendChild(line);
+      }
+
+      for (let n = 1; n <= 12; n++) {
+        const angle = (n * 30 - 90) * Math.PI / 180;
+        const r = 112;
+        const x = 200 + Math.cos(angle) * r;
+        const y = 200 + Math.sin(angle) * r + 2;
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", x);
+        text.setAttribute("y", y);
+        text.textContent = n;
+        numbersEl.appendChild(text);
+      }
+    }
+
+    drawClockFace(document.getElementById("ticks"), document.getElementById("numbers"));
+    drawClockFace(document.getElementById("quizTicks"), document.getElementById("quizNumbers"));
+
+    const screenStart = document.getElementById("screen-start");
+    const screenTrainer = document.getElementById("screen-trainer");
+    const screenQuiz = document.getElementById("screen-quiz");
+
+    function showScreen(screen) {
+      [screenStart, screenTrainer, screenQuiz].forEach(s => s.classList.remove("active"));
+      screen.classList.add("active");
+    }
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      showScreen(screenTrainer);
+    });
+
+    const hourHand = document.getElementById("hourHand");
+    const minuteHand = document.getElementById("minuteHand");
+    const modeBadge = document.getElementById("modeBadge");
+    const clockArea = document.getElementById("clockArea");
+
+    let currentHour = 8;
+    let currentMinute = 0;
+    let freeMode = false;
+    let draggingHand = null;
+
+    function setClockTime(hour, minute, animate = true) {
+      currentHour = ((hour % 12) + 12) % 12;
+      currentMinute = ((minute % 60) + 60) % 60;
+      hourHand.style.transition = animate ? "transform .45s cubic-bezier(.2,.8,.2,1)" : "none";
+      minuteHand.style.transition = animate ? "transform .45s cubic-bezier(.2,.8,.2,1)" : "none";
+      const minuteAngle = currentMinute * 6;
+      const hourAngle = currentHour * 30 + currentMinute * 0.5;
+      minuteHand.style.transform = "rotate(" + minuteAngle + "deg)";
+      hourHand.style.transform = "rotate(" + hourAngle + "deg)";
+    }
+
+    function randomTime() {
+      const h = Math.floor(Math.random() * 12);
+      const m = Math.floor(Math.random() * 12) * 5;
+      setClockTime(h, m, true);
+    }
+
+    document.getElementById("randomBtn").addEventListener("click", () => {
+      freeMode = false;
+      modeBadge.textContent = "Random Mode";
+      randomTime();
+    });
+
+    document.getElementById("freeModeBtn").addEventListener("click", () => {
+      freeMode = true;
+      modeBadge.textContent = "Free Mode";
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      setClockTime(8, 0, true);
+    });
+
+    document.getElementById("toQuizBtn").addEventListener("click", () => {
+      startQuiz();
+      showScreen(screenQuiz);
+    });
+
+    function getAngleFromPointer(clientX, clientY) {
+      const rect = clockArea.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+      let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+      if (angle < 0) angle += 360;
+      return angle;
+    }
+
+    function pointerMove(clientX, clientY) {
+      if (!freeMode || !draggingHand) return;
+      const angle = getAngleFromPointer(clientX, clientY);
+
+      if (draggingHand === "minute") {
+        const minute = Math.round(angle / 6) % 60;
+        setClockTime(currentHour, minute, false);
+      }
+
+      if (draggingHand === "hour") {
+        const totalHours = angle / 30;
+        const hour = Math.floor(totalHours) % 12;
+        const minutePart = Math.round((totalHours - hour) * 60 / 5) * 5;
+        setClockTime(hour, minutePart === 60 ? 0 : minutePart, false);
+      }
+    }
+
+    function startDrag(handName) {
+      if (!freeMode) return;
+      draggingHand = handName;
+      if (handName === "minute") minuteHand.classList.add("dragging");
+      if (handName === "hour") hourHand.classList.add("dragging");
+    }
+
+    function stopDrag() {
+      draggingHand = null;
+      minuteHand.classList.remove("dragging");
+      hourHand.classList.remove("dragging");
+    }
+
+    hourHand.addEventListener("mousedown", () => startDrag("hour"));
+    minuteHand.addEventListener("mousedown", () => startDrag("minute"));
+    window.addEventListener("mousemove", (e) => pointerMove(e.clientX, e.clientY));
+    window.addEventListener("mouseup", stopDrag);
+
+    hourHand.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      startDrag("hour");
+    }, { passive:false });
+
+    minuteHand.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      startDrag("minute");
+    }, { passive:false });
+
+    window.addEventListener("touchmove", (e) => {
+      if (!draggingHand) return;
+      const t = e.touches[0];
+      pointerMove(t.clientX, t.clientY);
+    }, { passive:false });
+
+    window.addEventListener("touchend", stopDrag);
+
+    setClockTime(8, 0, false);
+
+    const quizHourHand = document.getElementById("quizHourHand");
+    const quizMinuteHand = document.getElementById("quizMinuteHand");
+    const answerInput = document.getElementById("answerInput");
+    const feedback = document.getElementById("feedback");
+    const progressBox = document.getElementById("progressBox");
+    const quizPanel = document.getElementById("quizPanel");
+    const resultBoard = document.getElementById("resultBoard");
+    const scoreText = document.getElementById("scoreText");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultSub = document.getElementById("resultSub");
+
+    const tasks = [
+      { h:8, m:0, answers:["It's eight o'clock.","it's eight o'clock.","eight o'clock"] },
+      { h:6, m:15, answers:["It's quarter past six.","it's quarter past six.","quarter past six"] },
+      { h:3, m:30, answers:["It's half past three.","it's half past three.","half past three"] },
+      { h:10, m:45, answers:["It's quarter to eleven.","it's quarter to eleven.","quarter to eleven"] },
+      { h:1, m:20, answers:["It's twenty past one.","it's twenty past one.","twenty past one"] },
+      { h:5, m:50, answers:["It's ten to six.","it's ten to six.","ten to six"] },
+      { h:9, m:5, answers:["It's five past nine.","it's five past nine.","five past nine"] },
+      { h:11, m:35, answers:["It's twenty five to twelve.","it's twenty five to twelve.","twenty five to twelve","It's twenty-five to twelve.","it's twenty-five to twelve.","twenty-five to twelve"] }
+    ];
+
+    let quizIndex = 0;
+    let score = 0;
+    let answeredCurrent = false;
+    let attemptsLeft = 3;
+    let gameOver = false;
+
+    function setQuizClock(h, m) {
+      const minuteAngle = m * 6;
+      const hourAngle = (h % 12) * 30 + m * 0.5;
+      quizMinuteHand.style.transformOrigin = "200px 200px";
+      quizHourHand.style.transformOrigin = "200px 200px";
+      quizMinuteHand.style.transform = "rotate(" + minuteAngle + "deg)";
+      quizHourHand.style.transform = "rotate(" + hourAngle + "deg)";
+    }
+
+    function normalizeText(text) {
+      return text
+        .toLowerCase()
+        .trim()
+        .replace(/[.?!,]/g, "")
+        .replace(/-/g, " ")
+        .replace(/\s+/g, " ");
+    }
+
+    function clearAnswerState() {
+      answerInput.classList.remove("success");
+      answerInput.classList.remove("error");
+    }
+
+    function renderTask() {
+      const task = tasks[quizIndex];
+      setQuizClock(task.h, task.m);
+      progressBox.textContent = (quizIndex + 1) + " / " + tasks.length;
+      answerInput.value = "";
+      answerInput.disabled = false;
+      feedback.textContent = "Attempts: 3";
+      answeredCurrent = false;
+      attemptsLeft = 3;
+      clearAnswerState();
+      setTimeout(() => answerInput.focus(), 50);
+    }
+
+    function startQuiz() {
+      quizIndex = 0;
+      score = 0;
+      gameOver = false;
+      quizPanel.style.display = "flex";
+      resultBoard.style.display = "none";
+      renderTask();
+    }
+
+    function showGameOver() {
+      gameOver = true;
+      quizPanel.style.display = "none";
+      resultBoard.style.display = "block";
+      resultTitle.textContent = "Game Over";
+      scoreText.textContent = "Score: " + score + " / " + tasks.length;
+      resultSub.textContent = "You used all 3 attempts.";
+    }
+
+    function showWin() {
+      quizPanel.style.display = "none";
+      resultBoard.style.display = "block";
+      resultTitle.textContent = "Great Job!";
+      scoreText.textContent = "Score: " + score + " / " + tasks.length;
+      resultSub.textContent = "Press restart to play again.";
+    }
+
+    function checkAnswer() {
+      if (gameOver) return;
+      const task = tasks[quizIndex];
+      if (!task) return;
+      if (answeredCurrent) return;
+
+      const user = normalizeText(answerInput.value);
+      clearAnswerState();
+
+      if (!user) {
+        feedback.textContent = "Attempts: " + attemptsLeft;
+        return;
+      }
+
+      const ok = task.answers.some(a => normalizeText(a) === user);
+
+      if (ok) {
+        answeredCurrent = true;
+        score++;
+        answerInput.classList.add("success");
+        feedback.textContent = "";
+        return;
+      }
+
+      attemptsLeft--;
+      answerInput.classList.add("error");
+
+      if (attemptsLeft <= 0) {
+        feedback.textContent = "";
+        answerInput.disabled = true;
+        setTimeout(showGameOver, 500);
+      } else {
+        feedback.textContent = "Attempts: " + attemptsLeft;
+        answerInput.focus();
+        answerInput.select();
+      }
+    }
+
+    function nextTask() {
+      if (gameOver) return;
+      if (!answeredCurrent) return;
+      quizIndex++;
+      if (quizIndex >= tasks.length) {
+        showWin();
+      } else {
+        renderTask();
+      }
+    }
+
+    document.getElementById("checkBtn").addEventListener("click", checkAnswer);
+    document.getElementById("nextBtn").addEventListener("click", nextTask);
+
+    answerInput.addEventListener("input", () => {
+      clearAnswerState();
+    });
+
+    answerInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        if (answeredCurrent) {
+          nextTask();
+        } else {
+          checkAnswer();
+        }
+      }
+    });
+
+    document.getElementById("backTrainerBtn").addEventListener("click", () => {
+      showScreen(screenTrainer);
+    });
+
+    document.getElementById("restartQuizBtn").addEventListener("click", () => {
+      startQuiz();
+    });
+
+    document.getElementById("goTrainerBtn").addEventListener("click", () => {
+      showScreen(screenTrainer);
+    });
+  </script>
+</body>
+</html>
